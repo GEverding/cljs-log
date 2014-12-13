@@ -1,9 +1,10 @@
-(ns lolg
+(ns cljs-log.core
   (:require [goog.debug.Console :as console]
             [goog.debug.DivConsole :as div-console]
             [goog.debug.FancyWindow :as fancy]
             [goog.debug.Logger :as logger]))
 
+(def ^{:private true} *level* (atom :finest))
 
 (def ^{:doc "Maps log level keywords to goog.debug.Logger.Levels."}
   levels {:severe logger/Level.SEVERE
@@ -14,23 +15,28 @@
           :finer logger/Level.FINER
           :finest logger/Level.FINEST})
 
+(defn set-level! [level]
+  {:pre [(keyword? level) (contains? levels level)]}
+  (swap! *level* level))
+
+(defn- set-level
+  "Set the logging level of `logger` or `*default*` logger to `level`."
+  [logger level]
+     {:pre [(keyword? level) (contains? levels level)]}
+     (.setLevel logger (get levels level)) )
+
 (defn get-logger
   "Given a name, return an existing logger if one exists or create a
-  new logger."
+  new logger after setting it to the global log level"
   [name]
-  (logger/getLogger (str name)))
+  (let [l (logger/getLogger (str name))]
+    (set-level l @*level*)
+    l))
 
 (def ^{:doc "Global default logger, nothing more."
        :private true}
   *default*
   (get-logger "default"))
-
-(defn set-level
-  "Set the logging level of `logger` or `*default*` logger to `level`."
-  ([level] (set-level *default* level))
-  ([logger level]
-     {:pre [(keyword? level) (contains? levels level)]}
-     (.setLevel logger (get levels level))))
 
 
 (defn -prpr [s]
